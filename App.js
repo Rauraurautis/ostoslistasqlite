@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Header, Input, Icon, Button, ListItem } from 'react-native-elements';
 import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabase('products.db')
@@ -17,8 +18,12 @@ export default function App() {
   }, [])
 
   const saveProduct = () => {
+    if (name === "") {
+      return
+    }
+    let fixedName = name.charAt(0).toUpperCase() + name.substring(1).toLowerCase()
     db.transaction(tx => {
-      tx.executeSql('insert into Product (Name, Amount) values (?, ?);', [name, amount]);
+      tx.executeSql('insert into Product (Name, Amount) values (?, ?);', [fixedName, amount]);
     }, error => console.log(error), updateList)
     setName("")
     setAmount("")
@@ -37,29 +42,46 @@ export default function App() {
     }, null, updateList)
   }
 
-
+  const renderItem = ({ item }) => {
+    return (
+      <ListItem bottomDivider rightContent={ <Button
+        title="Delete"
+        icon={{ name: 'delete', color: 'white' }}
+        buttonStyle={{ minHeight: '100%', backgroundColor: 'red' }}
+      />}>
+        <ListItem.Content>
+          <ListItem.Title>{item.name}</ListItem.Title>
+          <ListItem.Subtitle>{item.amount}</ListItem.Subtitle>
+        </ListItem.Content>
+        <ListItem.Content right>
+          <Icon onPress={() => deleteProduct(item.id)}type="material" name="delete" color="red"/>
+        </ListItem.Content>
+      </ListItem>
+    )
+  }
 
 
   return (
     <View style={styles.container}>
-      
-      <TextInput style={styles.input, {marginTop: 50}} value={name} onChangeText={text => setName(text)} placeholder="Product name" />
-      <TextInput style={styles.input} value={amount} onChangeText={text => setAmount(text)} placeholder="Amount" />
-      <TouchableOpacity style={styles.button} onPress={saveProduct}>
-        <Text>SAVE</Text>
-      </TouchableOpacity>
-      <Text style={{fontSize: 20, marginTop: "5%"}}>Shopping list</Text>
+      <View style={{ paddingBottom: 10 }}>
+        <Header
+          backgroundColor="grey"
+          leftComponent={{ icon: "shopping-cart", color: "white" }}
+          centerComponent={{ text: "Shopping List App", style: { color: "white" } }}
+          rightComponent={{ icon: "shopping-cart", color: "white" }}
+        />
+      </View>
+      <Input placeholder="Product" label="PRODUCT" value={name} onChangeText={text => setName(text)} />
+      <Input placeholder="Amount" value={amount} onChangeText={text => setAmount(text)} label="AMOUNT" />
+      <Button raised icon={{ name: "save", type: "material", color: "#fff" }} onPress={saveProduct} title="ADD PRODUCT" />
+      <Text style={{ fontSize: 20, marginTop: "5%" }}>Shopping list</Text>
+      <View style={{width: "100%", flex: 1}}>
       <FlatList
-        style={{ marginLeft: "5%", marginTop: "5%"}}
         data={products}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) =>
-          <View style={styles.listcontainer}>
-            <Text style={{ fontSize: 18 }}>{item.name}, {item.amount}</Text>
-            <Text style={{ fontSize: 18, color: '#0000ff', marginLeft: 5 }} onPress={() => deleteProduct(item.id)}>bought</Text>
-          </View>
-        }
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={renderItem}
       />
+      </View>
     </View>
   );
 }
@@ -75,18 +97,13 @@ const styles = StyleSheet.create({
   },
   button: {
     alignItems: "center",
-    backgroundColor: "#ffc96d",
-    padding: 10
+    backgroundColor: "lightblue",
+    padding: 10,
+    width: 200
   },
   input: {
     marginTop: 5,
     marginBottom: 5
   },
-  listcontainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    
-  }
 });
 
